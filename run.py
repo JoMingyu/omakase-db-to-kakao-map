@@ -1,8 +1,8 @@
 import logging
 from typing import List
 
-from map import KaKaoMap, BookmarkRequest
-from restaurant import RestaurantLoader
+from loader import Loader, XlsxLoader
+from map import KaKaoMap
 from vo import Folder, Color
 
 PUBLIC_TO_KAKAOMAP_STATUS = {True: "O", False: "P"}
@@ -14,68 +14,63 @@ logger.setLevel(logging.DEBUG)
 
 
 class Sync:
-    def __init__(
-        self, map: KaKaoMap, restaurant_loader: RestaurantLoader, folders: List[Folder]
-    ):
+    def __init__(self, map: KaKaoMap, loader: Loader, folders: List[Folder]):
         self.map = map
-        self.restaurant_loader = restaurant_loader
+        self.loader = loader
         self.folders = folders
 
     def sync(self):
-        for folder in self.folders:
-            folder.id_on_map = self.map.create_folder(folder.name)
+        # for folder in self.folders:
+        #     folder.id_on_map = self.map.create_folder(folder.name)
 
-        restaurants = self.restaurant_loader.load()
-        valid_restaurants = []
+        restaurants = self.loader.load()
 
         for restaurant in restaurants:
             succeed = self.map.inject_data_for_request(restaurant)
 
-            if succeed:
-                valid_restaurants.append(restaurant)
-            else:
+            if not succeed:
                 print(
                     f"{restaurant.name} skipped during load place id. address: {restaurant.address}"
                 )
 
-        request_specs = []
-
-        for restaurant in valid_restaurants:
-            restaurant_bookmarked = False
-
-            for folder in self.folders:
-                if folder.criteria_func(restaurant):
-                    request_specs.append(
-                        BookmarkRequest(
-                            key=int(restaurant.id_on_map),
-                            folderId=int(folder.id_on_map),
-                            display1=restaurant.name,
-                            display2=restaurant.address,
-                            color=folder.color,
-                            x=restaurant.x,
-                            y=restaurant.y,
-                        )
-                    )
-                    print(f"restaurant {restaurant.name} put {folder.name}.")
-                    restaurant_bookmarked = True
-
-                    if len(request_specs) == 10:
-                        self.map.add_place_to_folder(
-                            json=[req.dict() for req in request_specs]
-                        )
-                        request_specs.clear()
-
-            if not restaurant_bookmarked:
-                print(f"restaurant {restaurant.name} never bookmarked.")
-
-        if request_specs:
-            # 남은거 처리
-            self.map.add_place_to_folder(json=[req.dict() for req in request_specs])
+        # request_specs = []
+        #
+        # for restaurant in valid_restaurants:
+        #     restaurant_bookmarked = False
+        #
+        #     for folder in self.folders:
+        #         if folder.criteria_func(restaurant):
+        #             request_specs.append(
+        #                 BookmarkRequest(
+        #                     key=int(restaurant.id_on_map),
+        #                     folderId=int(folder.id_on_map),
+        #                     display1=restaurant.name,
+        #                     display2=restaurant.address,
+        #                     color=folder.color,
+        #                     x=restaurant.x,
+        #                     y=restaurant.y,
+        #                 )
+        #             )
+        #             print(f"restaurant {restaurant.name} put {folder.name}.")
+        #             restaurant_bookmarked = True
+        #
+        #             if len(request_specs) == 10:
+        #                 self.map.add_place_to_folder(
+        #                     json=[req.dict() for req in request_specs]
+        #                 )
+        #                 request_specs.clear()
+        #
+        #     if not restaurant_bookmarked:
+        #         print(f"restaurant {restaurant.name} never bookmarked.")
+        #
+        # if request_specs:
+        #     # 남은거 처리
+        #     self.map.add_place_to_folder(json=[req.dict() for req in request_specs])
 
 
 Sync(
     map=KaKaoMap(token="..."),
-    restaurant_loader=RestaurantLoader(),
+    loader=XlsxLoader("data.xlsx"),
     folders=[
         Folder(
             name="미분류",

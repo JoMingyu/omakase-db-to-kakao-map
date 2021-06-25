@@ -1,23 +1,31 @@
+import re
 from enum import Enum
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Union
 
 from pydantic.main import BaseModel
+
+
+class RestaurantInfoInMap(BaseModel):
+    id: Optional[str]
+    address: Optional[str]
+    x: Optional[int]
+    y: Optional[int]
 
 
 class Restaurant(BaseModel):
     name: str
     dinner_prices: List[int]
-    address: str
-    id_on_map: Optional[str]
-    address_on_kakaomap: Optional[str]
-    x: Optional[int]
-    y: Optional[int]
+    address: Optional[str]
+    info_in_map: Optional[RestaurantInfoInMap]
 
     @classmethod
-    def listify_price(cls, v: str) -> List[int]:  # TODO rename ㅋㅋ
-        if v == "-":
-            # 코스 미제공
-            return []
+    def listify_price(cls, v: Union[int, str]) -> List[int]:
+        if isinstance(v, int):
+            return [v]
+
+        if ":" in v:
+            # A : 6 / B : 9 형태
+            v = "/".join(re.findall(r": (\d+)", v))
 
         separator_removed_price = v.replace(",", "")
 
@@ -29,8 +37,12 @@ class Restaurant(BaseModel):
             prices = [price.strip() for price in separator_removed_price.split("/")]
 
             for price in prices:
+                price = price.rstrip("만")
+                # "5.5만" 같은 케이스가 있음
+
                 if "." in price:
                     # 4.4, 6.6 같은 format
+
                     result.append(int(float(price) * 10000))
                 else:
                     result.append(int(price))

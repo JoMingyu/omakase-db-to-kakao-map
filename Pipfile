@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 requests = "*"
 pydantic = "*"
+openpyxl = "*"
 
 [dev-packages]
 black = "*"

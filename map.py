@@ -5,7 +5,7 @@ from typing import Optional, List
 from pydantic.main import BaseModel
 from requests import get, post
 
-from vo import Restaurant
+from vo import Restaurant, RestaurantInfoInMap
 
 
 class BookmarkRequest(BaseModel):
@@ -61,10 +61,12 @@ class KaKaoMap:  # interface로 Map을 두면 다른 지도에 대응시키기 �
         return resp.json()["req"]["folderId"]
 
     def _inject_place_data(self, place: dict, restaurant: Restaurant):
-        restaurant.id_on_map = place["confirmid"]
-        restaurant.address_on_kakaomap = place["new_address"]
-        restaurant.x = place["x"]
-        restaurant.y = place["y"]
+        restaurant.info_in_map = RestaurantInfoInMap(
+            id=place["confirmid"],
+            address=place["new_address"],
+            x=place["x"],
+            y=place["y"],
+        )
 
     def inject_data_for_request(self, restaurant: Restaurant) -> bool:
         """
